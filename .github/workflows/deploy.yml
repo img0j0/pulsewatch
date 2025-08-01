@@ -1,0 +1,54 @@
+name: Deploy PulseWatch
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Debug SSH Key
+        run: ssh-add -l || echo "No keys loaded!"
+
+      - name: Deploy to Droplet
+        run: |
+          echo "DEBUG: Branch is $GITHUB_REF"
+          if [[ $GITHUB_REF == "refs/heads/main" ]]; then
+            DEPLOY_PATH="/opt/pulsewatch/production"
+          else
+            DEPLOY_PATH="/opt/pulsewatch/staging"
+          fi
+
+          echo "DEBUG: Deploying to $DEPLOY_PATH"
+
+          ssh -v -o StrictHostKeyChecking=no root@${{ secrets.DROPLET_IP }} "
+            echo 'DEBUG: Connected to droplet';
+            mkdir -p \$DEPLOY_PATH &&
+            cd \$DEPLOY_PATH &&
+            git init &&
+            git remote remove origin || true &&
+            git remote add origin git@github.com:img0j0/pulsewatch.git &&
+            git fetch origin \$GITHUB_REF &&
+            git checkout -f FETCH_HEAD &&
+            docker compose down || true &&
+            docker compose up -d --build
+          "
+
+      - name: Health Check
+        run: |
+          echo "DEBUG: Running health check on droplet..."
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.DROPLET_IP }} "
+            echo 'DEBUG: Checking web service...';
+            curl -f http://localhost:8000 || (echo 'Health check failed!' && exit 1)
+          "
