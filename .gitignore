@@ -1,0 +1,22 @@
+﻿# Environment files
+.env
+.env.*
+staging/.env
+production/.env
+# SSH keys (never commit)
+DEPLOY_SSH_KEY
+DEPLOY_SSH_KEY.pub
+PUBLIC_KEY
+# Python cache & logs
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.sqlite3
+# Docker
+*.pid
+*.sock
+# IDE/Editor files
+.vscode/
+.idea/

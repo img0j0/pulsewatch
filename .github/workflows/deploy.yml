@@ -1,0 +1,25 @@
+- name: Deploy to droplet
+  run: |
+    if [[ $GITHUB_REF == "refs/heads/main" ]]; then
+      DEPLOY_PATH="/opt/pulsewatch/production"
+    else
+      DEPLOY_PATH="/opt/pulsewatch/staging"
+    fi
+
+    echo "DEBUG: Branch is $GITHUB_REF"
+    echo "DEBUG: Deploying to $DEPLOY_PATH"
+
+    ssh -o StrictHostKeyChecking=no root@${{ secrets.DROPLET_IP }} "
+      echo 'DEBUG: Connected to droplet';
+      echo 'DEBUG: DEPLOY_PATH is $DEPLOY_PATH';
+      mkdir -p $DEPLOY_PATH &&
+      cd $DEPLOY_PATH &&
+      git init &&
+      git remote remove origin || true &&
+      git remote add origin git@github.com:${{ github.repository }}.git &&
+      git fetch origin $GITHUB_REF &&
+      git checkout -f FETCH_HEAD &&
+      docker compose down || true &&
+      docker compose up -d --build
+    "
+

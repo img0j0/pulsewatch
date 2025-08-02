@@ -1,0 +1,31 @@
+services:
+  web:
+    build: .
+    container_name: pulsewatch_local
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    restart: always
+    depends_on:
+      - db
+      - redis
+
+  db:
+    image: postgres:15
+    container_name: pulsewatch_db_local
+    environment:
+      POSTGRES_USER: pulsewatch
+      POSTGRES_PASSWORD: pulsewatch
+      POSTGRES_DB: pulsewatch
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    restart: always
+
+  redis:
+    image: redis:alpine
+    container_name: pulsewatch_redis_local
+    restart: always
+
+volumes:
+  db_data:
