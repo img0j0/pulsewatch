@@ -1,25 +1,41 @@
-- name: Deploy to droplet
-  run: |
-    if [[ $GITHUB_REF == "refs/heads/main" ]]; then
-      DEPLOY_PATH="/opt/pulsewatch/production"
-    else
-      DEPLOY_PATH="/opt/pulsewatch/staging"
-    fi
+name: Deploy to DigitalOcean
 
-    echo "DEBUG: Branch is $GITHUB_REF"
-    echo "DEBUG: Deploying to $DEPLOY_PATH"
+on:
+  push:
+    branches:
+      - main
 
-    ssh -o StrictHostKeyChecking=no root@${{ secrets.DROPLET_IP }} "
-      echo 'DEBUG: Connected to droplet';
-      echo 'DEBUG: DEPLOY_PATH is $DEPLOY_PATH';
-      mkdir -p $DEPLOY_PATH &&
-      cd $DEPLOY_PATH &&
-      git init &&
-      git remote remove origin || true &&
-      git remote add origin git@github.com:${{ github.repository }}.git &&
-      git fetch origin $GITHUB_REF &&
-      git checkout -f FETCH_HEAD &&
-      docker compose down || true &&
-      docker compose up -d --build
-    "
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
 
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          cat >>~/.ssh/config <<END
+          Host droplet
+            HostName YOUR_DROPLET_IP
+            User root
+            IdentityFile ~/.ssh/deploy_key
+            StrictHostKeyChecking no
+          END
+
+      - name: Deploy to droplet
+        run: |
+          ssh droplet "
+            cd /var/www/pulsewatch || mkdir -p /var/www/pulsewatch && cd /var/www/pulsewatch
+            if [ ! -d .git ]; then
+              git clone git@github.com:img0j0/pulsewatch.git .
+            else
+              git reset --hard
+              git pull origin main
+            fi
+            docker compose down
+            docker compose up -d --build
+          "
