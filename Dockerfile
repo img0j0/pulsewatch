@@ -1,9 +1,15 @@
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 WORKDIR /app
-COPY backend /app
 
-RUN pip install flask
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt gunicorn
+
+COPY backend ./backend
+COPY wsgi.py .
+
+RUN mkdir -p instance
 
 EXPOSE 8000
-CMD ["python", "app.py"]
+
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "wsgi:app"]
