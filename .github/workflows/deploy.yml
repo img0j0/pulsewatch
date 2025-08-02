@@ -13,14 +13,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup SSH
+            - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           cat >>~/.ssh/config <<END
           Host droplet
-            HostName YOUR_DROPLET_IP
+            HostName 142.93.7.69
             User root
             IdentityFile ~/.ssh/deploy_key
             StrictHostKeyChecking no
